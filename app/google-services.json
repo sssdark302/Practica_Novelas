@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "443833670245",
+    "project_id": "fir-novelas",
+    "storage_bucket": "fir-novelas.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:443833670245:android:f15207e83bd3109134c48c",
+        "android_client_info": {
+          "package_name": "com.example.libreria_pde"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDtWCvlsOpGC6qqKDMVj4o50A5zYCWecKs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
