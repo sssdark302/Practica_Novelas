@@ -1,0 +1,86 @@
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerViewNovels"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:padding="8dp"
+        android:scrollbars="vertical" />
+
+    <Button
+        android:id="@+id/buttonAddNovel"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Agregar Nueva Novela"
+        android:layout_marginBottom="16dp" />
+
+    <LinearLayout
+        android:id="@+id/novelDetailView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:visibility="gone"
+        android:padding="16dp"
+        android:background="#f0f0f0"
+        android:elevation="4dp">
+
+
+        <TextView
+            android:id="@+id/textViewNovelTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Título de la Novela"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/textViewNovelAuthor"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Autor: Anónimo"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/textViewNovelYear"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Año: "
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/textViewNovelSynopsis"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Sinopsis: "
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:id="@+id/textViewReviews"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Reseñas:"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/buttonFavorite"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Marcar como Favorita"
+            android:layout_marginBottom="8dp" />
+
+        <Button
+            android:id="@+id/buttonAddReview"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Agregar Reseña"
+            android:layout_marginBottom="8dp" />
+    </LinearLayout>
+
+</LinearLayout>
