@@ -1,18 +1,22 @@
+
 package com.example.libreria_pde
 
-import android.app.AlertDialog
+import android.app.*
+import android.app.job.JobInfo
+import android.app.job.JobScheduler
+import android.content.ComponentName
+import android.content.Context
 import android.os.Bundle
-import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.Gson
-import com.google.gson.reflect.TypeToken
+import com.example.libreria_pde.FireBase.FireBaseHelper
+import com.google.firebase.FirebaseApp
+import com.google.firebase.firestore.FirebaseFirestore
 import java.util.Calendar
 
 class MainActivity : ComponentActivity() {
@@ -20,17 +24,25 @@ class MainActivity : ComponentActivity() {
     private lateinit var recyclerView: RecyclerView
     private lateinit var novelAdapter: NovelAdapter
     private lateinit var novelList: MutableList<Novel> // Lista de novelas
+    private lateinit var firestore: FirebaseFirestore
+    private val CHANNEL_ID = "SYNC_NOTIFICATION"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.main_activity)
 
-        // Cargar las novelas desde SharedPreferences
-        loadNovelsFromPreferences()
+        // Inicializar Firebase
+        FirebaseApp.initializeApp(this)
+
+        // Comenzar a trabajar con Firebase Firestore después de inicializar Firebase
+        val firestore = FirebaseFirestore.getInstance()
+
+        // Cargar las novelas desde Firebase
+        loadNovelsFromFirebase()
 
         // Configuración del RecyclerView
         recyclerView = findViewById(R.id.recyclerViewNovels)
-        novelAdapter = NovelAdapter(novelList, { novel -> showNovelDetails(novel) }, { novel -> deleteNovel(novel) })
+        novelAdapter = NovelAdapter(novelList, { novel -> novelDetails(novel) }, { novel -> borrarNovela(novel) })
         recyclerView.adapter = novelAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
 
@@ -39,7 +51,6 @@ class MainActivity : ComponentActivity() {
         addNovelButton.setOnClickListener {
             addNewNovel()
         }
-
     }
 
     // Método para agregar una nueva novela
@@ -57,147 +68,92 @@ class MainActivity : ComponentActivity() {
         layout.addView(titleInput)
 
         val authorInput = EditText(this)
-        authorInput.hint = "Autor de la novela (opcional)"
+        authorInput.hint = "Autor de la novela"
         layout.addView(authorInput)
 
         val yearInput = EditText(this)
-        yearInput.hint = "Año de publicación (opcional, solo números)"
+        yearInput.hint = "Año de publicación"
         layout.addView(yearInput)
-
-        val synopsisInput = EditText(this)
-        synopsisInput.hint = "Sinopsis breve (opcional)"
-        layout.addView(synopsisInput)
 
         dialogBuilder.setView(layout)
 
-        dialogBuilder.setPositiveButton("Agregar") { _, _ ->
-            val title = titleInput.text.toString().trim()
-            val author = if (authorInput.text.toString().trim().isEmpty()) "Anónimo" else authorInput.text.toString().trim()
-            val yearString = yearInput.text.toString().trim()
-            val synopsis = synopsisInput.text.toString().trim()
+        dialogBuilder.setPositiveButton("Guardar") { _, _ ->
+            val title = titleInput.text.toString()
+            val author = authorInput.text.toString()
+            val year = yearInput.text.toString().toIntOrNull() ?: Calendar.getInstance().get(Calendar.YEAR)
+            val novelId = getNextNovelId()  // Generar ID local si es necesario
 
-            if (title.isEmpty()) {
-                Toast.makeText(this, "El título no puede estar vacío", Toast.LENGTH_SHORT).show()
-                return@setPositiveButton
-            }
+            val novel = Novel(title, author, year, false, novelId)
+            novelList.add(novel)
+            novelAdapter.notifyDataSetChanged()
 
-            // Validar el año
-            val currentYear = Calendar.getInstance().get(Calendar.YEAR)
-            val year = if (yearString.isEmpty()) {
-                ""
-            } else {
-                try {
-                    // Intentar convertir el año a un número entero
-                    val yearInt = yearString.toInt()
-                    if (yearInt > currentYear) {
-                        Toast.makeText(this, "El año no puede ser mayor que el año actual.", Toast.LENGTH_SHORT).show()
-                        return@setPositiveButton
-                    }
-                    yearInt.toString() // Convertir de nuevo a cadena para guardar
-                } catch (e: NumberFormatException) {
-                    // Capturar el error si no se puede convertir a entero
-                    Toast.makeText(this, "El año debe ser un número válido.", Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+            // Reutilizar el método para guardar en Firebase
+                FireBaseHelper.FirebaseHelper.saveNovelToFirebase(novel,
+                onSuccess = {
+                    Toast.makeText(this, "Novela guardada con éxito", Toast.LENGTH_SHORT).show()
+                },
+                onFailure = { e ->
+                    Toast.makeText(this, "Error al guardar la novela: ${e.message}", Toast.LENGTH_SHORT).show()
                 }
-            }
-
-            val newNovel = Novel(title, author, Integer.parseInt(year), synopsis)
-            novelList.add(newNovel)
-            novelAdapter.notifyDataSetChanged()
-            saveNovelsToPreferences() // Guardar las novelas después de agregar
+            )
         }
+
         dialogBuilder.setNegativeButton("Cancelar", null)
-
-        // Mostrar el diálogo
-        dialogBuilder.show()
+        dialogBuilder.create().show()
     }
 
 
-    // Método para eliminar una novela
-    private fun deleteNovel(novel: Novel) {
-        novelList.remove(novel)
-        novelAdapter.notifyDataSetChanged()
-        saveNovelsToPreferences() // Guardar las novelas después de eliminar
+    // Cargar novelas desde Firebase
+    private fun loadNovelsFromFirebase() {
+        firestore.collection("novels").get()
+            .addOnSuccessListener { documents ->
+                novelList.clear()
+                for (document in documents) {
+                    val novel = document.toObject(Novel::class.java)
+                    novelList.add(novel)
+                }
+                novelAdapter.notifyDataSetChanged()
+            }
+            .addOnFailureListener { exception ->
+                Toast.makeText(this, "Error al cargar novelas: ${exception.message}", Toast.LENGTH_SHORT).show()
+            }
     }
 
-    // Método para mostrar los detalles de la novela seleccionada
-    // Método para mostrar los detalles de la novela seleccionada
-    private fun showNovelDetails(novel: Novel) {
-        // Mostrar el layout de detalles
-        val novelDetailView: LinearLayout = findViewById(R.id.novelDetailView)
-        novelDetailView.visibility = View.VISIBLE
+    private fun getNextNovelId(): Int {
+        val sharedPreferences = getSharedPreferences("novelPrefs", MODE_PRIVATE)
+        val lastId = sharedPreferences.getInt("lastId", 0) // Obtén el último ID, 0 si no existe
+        val nextId = lastId + 1
 
-        // Asignar la información de la novela a los TextView correspondientes
-        findViewById<TextView>(R.id.textViewNovelTitle).text = novel.title
-        findViewById<TextView>(R.id.textViewNovelAuthor).text = "Autor: ${novel.author}"
-        findViewById<TextView>(R.id.textViewNovelYear).text = "Año: ${novel.year}"
-        findViewById<TextView>(R.id.textViewNovelSynopsis).text = "Sinopsis: ${novel.synopsis}"
-        findViewById<TextView>(R.id.textViewReviews).text = novel.reviews.joinToString("\n")
-
-        // Botón para marcar como favorita
-        val favoriteButton = findViewById<Button>(R.id.buttonFavorite)
-        favoriteButton.text = if (novel.isFavorite) "Desmarcar Favorita" else "Marcar como Favorita"
-        favoriteButton.setOnClickListener {
-            novel.isFavorite = !novel.isFavorite
-            // Cambiar el texto del botón según el estado
-            favoriteButton.text = if (novel.isFavorite) "Desmarcar Favorita" else "Marcar como Favorita"
-            novelAdapter.notifyDataSetChanged()
-            saveNovelsToPreferences() // Guardar las novelas después de cambiar el estado de favorita
+        // Guardar el próximo ID en las preferencias para mantenerlo actualizado
+        with(sharedPreferences.edit()) {
+            putInt("lastId", nextId)
+            apply()
         }
 
-        // Botón para agregar reseñas
-        findViewById<Button>(R.id.buttonAddReview).setOnClickListener {
-            addReview(novel)
-        }
+        return nextId
     }
 
+    fun scheduleJob(context: Context) {
+        val componentName = ComponentName(context, SyncJobService::class.java)
+        val jobInfo = JobInfo.Builder(123, componentName)
+            .setPeriodic(6 * 60 * 60 * 1000)  // Ejecutar cada 6 horas
+            .build()
 
-    // Método para agregar reseñas a la novela seleccionada
-    private fun addReview(novel: Novel) {
+        val jobScheduler = context.getSystemService(JobScheduler::class.java)
+        jobScheduler?.schedule(jobInfo)
+    }
+
+    private fun novelDetails(novel: Novel) {
         val dialogBuilder = AlertDialog.Builder(this)
-        dialogBuilder.setTitle("Agregar Reseña")
+        dialogBuilder.setTitle(novel.title)
+        dialogBuilder.setMessage("Autor: ${novel.author}\nAño: ${novel.year}\nFavorita: ${novel.favorite}")
 
-        // Crear campo para la reseña
-        val reviewInput = EditText(this)
-        reviewInput.hint = "Escribe tu reseña aquí"
-        dialogBuilder.setView(reviewInput)
-
-        // Botones del diálogo
-        dialogBuilder.setPositiveButton("Agregar") { _, _ ->
-            val review = reviewInput.text.toString().trim()
-            if (review.isEmpty()) {
-                Toast.makeText(this, "La reseña no puede estar vacía", Toast.LENGTH_SHORT).show()
-                return@setPositiveButton
-            }
-
-            novel.reviews.add(review)
-            findViewById<TextView>(R.id.textViewReviews).text = novel.reviews.joinToString("\n")
-            saveNovelsToPreferences() // Guardar las novelas después de agregar reseña
-        }
-        dialogBuilder.setNegativeButton("Cancelar", null)
-
-        // Mostrar el diálogo
-        dialogBuilder.show()
-    }
-
-    private fun saveNovelsToPreferences() {
-        val sharedPreferences = getSharedPreferences("NovelLibraryPrefs", MODE_PRIVATE)
-        val editor = sharedPreferences.edit()
-        val gson = Gson()
-        val json = gson.toJson(novelList)
-        editor.putString("novelList", json)
-        editor.apply()
-    }
-
-    private fun loadNovelsFromPreferences() {
-        val sharedPreferences = getSharedPreferences("NovelLibraryPrefs", MODE_PRIVATE)
-        val gson = Gson()
-        val json = sharedPreferences.getString("novelList", null)
-        val type = object : TypeToken<MutableList<Novel>>() {}.type
-        novelList = if (json != null) {
-            gson.fromJson(json, type)
-        } else {
-            mutableListOf()
-        }
+        dialogBuilder.setPositiveButton("Cerrar", null)
+        dialogBuilder.create().show()
     }
 }
+
+private fun AlertDialog.Builder.setPositiveButton(s: String) {
+
+}
+

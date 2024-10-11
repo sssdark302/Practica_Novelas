@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:443833670245:android:f15207e83bd3109134c48c",
+        "mobilesdk_app_id": "1:443833670245:android:acff796ae01d638234c48c",
         "android_client_info": {
-          "package_name": "com.example.libreria_pde"
+          "package_name": "com.example.novelas.libreria"
         }
       },
       "oauth_client": [],

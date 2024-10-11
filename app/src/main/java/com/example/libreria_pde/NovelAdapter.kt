@@ -1,6 +1,6 @@
+
 package com.example.libreria_pde
 
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,56 +10,55 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
 class NovelAdapter(
-    private var novelList: MutableList<Novel>,
-    private val onNovelClick: (Novel) -> Unit,
-    private val onDeleteClick: (Novel) -> Unit
+    private val novels: List<Novel>,
+    private val onNovelClicked: (Novel) -> Unit,
+    private val onDeleteClicked: (Novel) -> Unit,
+    private val onViewDetailsClick: (Novel) -> Unit
 ) : RecyclerView.Adapter<NovelAdapter.NovelViewHolder>() {
 
-    inner class NovelViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
-        val textViewTitle: TextView = itemView.findViewById(R.id.textViewNovelTitle)
-        val textViewAuthor: TextView = itemView.findViewById(R.id.textViewNovelAuthor)
-        val textViewYear: TextView = itemView.findViewById(R.id.textViewNovelYear)
-        val favoriteIcon: ImageView = itemView.findViewById(R.id.imageViewFavorite)
-        val buttonDelete: Button = itemView.findViewById(R.id.buttonDelete) // Botón de eliminar
-
+    inner class NovelViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         fun bind(novel: Novel) {
-            textViewTitle.text = novel.title
-            textViewAuthor.text = "Autor: ${novel.author}"
-            textViewYear.text = "Año: ${novel.year}"
+            val titleTextView = itemView.findViewById<TextView>(R.id.textViewNovelTitle)
+            val authorTextView = itemView.findViewById<TextView>(R.id.textViewNovelAuthor)
+            val yearTextView = itemView.findViewById<TextView>(R.id.textViewNovelYear)
+            val favoriteImageView = itemView.findViewById<ImageView>(R.id.imageViewFavorite)
+            val deleteButton = itemView.findViewById<Button>(R.id.buttonDelete)
+            val viewDetailsButton = itemView.findViewById<Button>(R.id.buttonViewDetails)
 
-            // Cambiar el ícono de favorito
-            favoriteIcon.setImageResource(if (novel.isFavorite) R.drawable.ic_star_filled else R.drawable.ic_star_border)
+            titleTextView.text = novel.title
+            authorTextView.text = novel.author
+            yearTextView.text = novel.year.toString()
 
-            // Establecer clics
-            itemView.setOnClickListener { onNovelClick(novel) }
-            buttonDelete.setOnClickListener { onDeleteClick(novel) } // Eliminar novela
+            favoriteImageView.setImageResource(if (novel.favorite) R.drawable.ic_star_filled else R.drawable.ic_star_border)
+
+            itemView.setOnClickListener {
+                onNovelClicked(novel)
+            }
+
+          deleteButton.setOnClickListener {
+                onDeleteClicked(novel)
+            }
+
+            favoriteImageView.setOnClickListener {
+                novel.favorite = !novel.favorite
+                favoriteImageView.setImageResource(if (novel.favorite) R.drawable.ic_star_filled else R.drawable.ic_star_border)
+            }
+
+            // Botón para ver detalles
+            viewDetailsButton.setOnClickListener {
+                onViewDetailsClick(novel)
+            }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): NovelViewHolder {
-        val itemView = LayoutInflater.from(parent.context).inflate(R.layout.novel_item, parent, false)
-        return NovelViewHolder(itemView)
+        val view = LayoutInflater.from(parent.context).inflate(R.layout.novel_item, parent, false)
+        return NovelViewHolder(view)
     }
 
     override fun onBindViewHolder(holder: NovelViewHolder, position: Int) {
-        val novel = novelList[position]
-        holder.bind(novel)
-
-        // Cambiar el color de fondo para diferenciar novelas
-        if (position % 2 == 0) {
-            holder.itemView.setBackgroundColor(0xFFB2EBF2.toInt()) // Azul claro
-        } else {
-            holder.itemView.setBackgroundColor(0xFFB2DFDB.toInt()) // Verde claro
-        }
+        holder.bind(novels[position])
     }
 
-    override fun getItemCount(): Int {
-        return novelList.size
-    }
-
-    // Método para actualizar la lista de novelas
-    fun updateNovels(novels: MutableList<Novel>) {
-        this.novelList = novels
-        notifyDataSetChanged()
-    }
+    override fun getItemCount(): Int = novels.size
 }
