@@ -101,6 +101,31 @@ class MainActivity : ComponentActivity() {
         dialogBuilder.setNegativeButton("Cancelar", null)
         dialogBuilder.create().show()
     }
+    // Método para borrar una novela
+    private fun deleteNovel(novel: Novel) {
+        val dialogBuilder = AlertDialog.Builder(this)
+        dialogBuilder.setTitle("Eliminar Novela")
+        dialogBuilder.setMessage("¿Estás seguro de que deseas eliminar la novela '${novel.title}'?")
+
+        dialogBuilder.setPositiveButton("Eliminar") { _, _ ->
+            // Eliminar de la lista local
+            novelList.remove(novel)
+            novelAdapter.notifyDataSetChanged()
+
+            // Eliminar la novela de Firebase
+            FireBaseHelper.deleteNovelFromFirebase(novel.id,
+                onSuccess = {
+                    Toast.makeText(this, "Novela eliminada con éxito", Toast.LENGTH_SHORT).show()
+                },
+                onFailure = { e ->
+                    Toast.makeText(this, "Error al eliminar la novela: ${e.message}", Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+
+        dialogBuilder.setNegativeButton("Cancelar", null)
+        dialogBuilder.create().show()
+    }
 
 
     // Cargar novelas desde Firebase

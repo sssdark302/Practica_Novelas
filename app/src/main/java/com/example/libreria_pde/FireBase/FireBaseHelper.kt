@@ -5,6 +5,7 @@ import com.example.libreria_pde.Novel
 import com.google.firebase.firestore.FirebaseFirestore
 
 object FireBaseHelper {
+
     object FirebaseHelper {
         private val db = FirebaseFirestore.getInstance()
 
@@ -69,7 +70,7 @@ object FireBaseHelper {
                     // Convertir cada documento a un objeto Novel
                     for (document in result) {
                         val novel = document.toObject(Novel::class.java)
-                        novel.id = document.id
+                        novel.id
                         novels.add(novel)
                     }
 
